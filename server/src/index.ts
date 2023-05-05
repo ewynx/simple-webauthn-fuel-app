@@ -99,19 +99,19 @@ const inMemoryUserDeviceDB: { [loggedInUserId: string]: LoggedInUser } = {
 };
 
 
-app.get("/api", (req, res) => {
-  res.json({ message: "Hello from server!" });
+app.get("/live", (req, res) => {
+  res.json({ message: "Hello from server! We are live." });
 });
 
 /**
  * Registration (a.k.a. "Registration")
  */
 app.get('/generate-registration-options', async (req, res) => {
-  ///////START FUEL TRYOUT
+
+  ///////START FUEL SNIPPET
   const provider = new Provider('https://node-beta-2.fuel.network');
   // Setup a private key
   const PRIVATE_KEY = 'a1447cd75accc6b71a976fd3401a1f6ce318d27ba660b0315ee6ac347bf39568';
-
 
   // Create the wallet, passing provider
   const wallet: WalletUnlocked = Wallet.fromPrivateKey(PRIVATE_KEY, provider);
@@ -119,13 +119,8 @@ app.get('/generate-registration-options', async (req, res) => {
   const signer = new Signer(PRIVATE_KEY);
   // check address correct
   console.log(wallet.address.toJSON() === signer.address.toJSON());
+  ///////END FUEL SNIPPET
 
-  // TODO continue here!!! Figure out how to be able to make this call
-  // let bal = await wallet.getBalances();
-  // console.log(bal);
-
-
-  ///////END
   const user = inMemoryUserDeviceDB[loggedInUserId];
 
   const {
@@ -186,7 +181,7 @@ app.post('/verify-registration', async (req, res) => {
     const opts: VerifyRegistrationResponseOpts = {
       response: body,
       expectedChallenge: `${expectedChallenge}`,
-      expectedOrigin,
+      expectedOrigin: "http://localhost:3000",
       expectedRPID: rpID,
       requireUserVerification: true,
     };
@@ -278,7 +273,7 @@ app.post('/verify-authentication', async (req, res) => {
     const opts: VerifyAuthenticationResponseOpts = {
       response: body,
       expectedChallenge: `${expectedChallenge}`,
-      expectedOrigin,
+      expectedOrigin: "http://localhost:3000",
       expectedRPID: rpID,
       authenticator: dbAuthenticator,
       requireUserVerification: true,

@@ -4,6 +4,7 @@ import "./App.css";
 // Import the contract factory -- you can find the name in index.ts.
 // You can also do command + space and the compiler will suggest the correct name.
 import { CounterContractAbi__factory } from "./contracts";
+import { startRegistration, startAuthentication } from "@simplewebauthn/browser";
 
 // The address of the contract deployed the Fuel testnet
 const CONTRACT_ID =
@@ -14,7 +15,6 @@ function App() {
   const [account, setAccount] = useState<string>("");
   const [counter, setCounter] = useState<number>(0);
   const [loaded, setLoaded] = useState(false);
-  const [data, setData] = useState<string | null>(null);
 
   useEffect(() => {
     setTimeout(() => {
@@ -23,8 +23,8 @@ function App() {
     }, 200)
     if (connected) getCount();
 
-    // Call from server
-    fetch("/api")
+    // Simple call from server to check whether it's live.
+    fetch("/live")
       .then((res) => {
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
@@ -32,12 +32,11 @@ function App() {
         return res.text();
       })
       .then((text) => {
-        console.log("Response from server:", text);
         const data = JSON.parse(text);
-        setData(data.message);
+        console.log(data.message);
       })
       .catch((err) => {
-        console.error("Error fetching data:", err);
+        console.error("Error checking live status of server:", err);
       });
   }, [connected])
 
@@ -90,6 +89,72 @@ function App() {
     }
   }
 
+  async function btnRegBegin() {
+    fetch("/generate-registration-options")
+      .then(async (res) => {
+        const resp = await fetch('/generate-registration-options');
+
+        let attResp;
+        try {
+          const opts = await resp.json();
+          attResp = await startRegistration(opts);
+        } catch (error) {
+          throw error;
+        }
+
+        const verificationResp = await fetch('/verify-registration', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(attResp),
+        });
+
+        const verificationJSON = await verificationResp.json();
+        console.log(verificationJSON);
+        if (verificationJSON && verificationJSON.verified) {
+          console.log("Registration successful");
+        } else {
+          console.error("Registration failed");
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching data:", err);
+      }); 
+  }
+
+  async function btnAuthBegin() {
+
+    const resp = await fetch('/generate-authentication-options');
+
+    let asseResp;
+    try {
+      const opts = await resp.json();
+
+      asseResp = await startAuthentication(opts);
+    } catch (error) {
+      throw error;
+    }
+
+    const verificationResp = await fetch('/verify-authentication', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(asseResp),
+    });
+
+    const verificationJSON = await verificationResp.json();
+    console.log(verificationJSON);
+    if (verificationJSON && verificationJSON.verified) {
+      console.log("Authentication successful");
+    } else {
+      console.error("Authentication failed");
+    }
+
+  }
+  
+
 
   if (!loaded) return null
   
@@ -103,7 +168,14 @@ function App() {
               <button style={buttonStyle} onClick={increment}>
                 Increment
               </button>
-              <p>{!data ? "Loading..." : data}</p>
+
+              <button style={buttonStyle} onClick={btnRegBegin}>
+              Register
+              </button>
+
+              <button style={buttonStyle} onClick={btnAuthBegin}>
+              Authenticate
+              </button>
 
             </>
           ) : (
